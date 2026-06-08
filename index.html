@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="菜单助手">
+  <meta name="description" content="旅行菜单翻译助手 - 拍照识别菜单，中文翻译，智能点菜计算">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+  <title>🍽️ 菜单翻译助手</title>
+  <style>
+    /* ====== CSS Variables & Reset ====== */
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --surface-2: #16213e;
+      --surface-3: #0f3460;
+      --gold: #d4a853;
+      --gold-light: #f0d78c;
+      --gold-dark: #b8943a;
+      --text: #e8e8e8;
+      --text-secondary: #a0a0b8;
+      --text-muted: #6a6a7e;
+      --danger: #e94560;
+      --success: #2ecc71;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 8px;
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+      --header-h: 56px;
+      --cart-bar-h: 64px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ====== App Shell ====== */
+    #app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ====== Header ====== */
+    header {
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    header .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold-light);
+    }
+    header .logo .icon { font-size: 24px; }
+    header .header-actions { display: flex; gap: 8px; }
+
+    /* ====== Buttons ====== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: var(--radius-xs);
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: #1a1a2e;
+      box-shadow: 0 2px 12px rgba(212,168,83,0.3);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--gold);
+      border: 1.5px solid var(--gold);
+    }
+    .btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 6px; }
+    .btn-icon {
+      width: 40px; height: 40px; padding: 0;
+      border-radius: 50%;
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 20px;
+      border: none;
+    }
+
+    /* ====== Main Content Area ====== */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: calc(var(--cart-bar-h) + var(--safe-bottom) + 16px);
+    }
+
+    /* ====== Welcome State ====== */
+    .welcome {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .welcome .hero-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    .welcome h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+    }
+    .welcome p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 28px;
+      max-width: 280px;
+    }
+    .capture-area { width: 100%; max-width: 300px; }
+    .capture-btns { display: flex; flex-direction: column; gap: 12px; }
+    .capture-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 24px;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px dashed var(--border);
+      background: var(--surface);
+      color: var(--text);
+      transition: all 0.25s;
+      font-family: inherit;
+    }
+    .capture-btn:active { background: var(--surface-2); border-color: var(--gold); }
+    .capture-btn.camera {
+      background: linear-gradient(135deg, var(--surface-2), var(--surface-3));
+      border: none;
+      color: var(--gold-light);
+    }
+    .capture-btn .btn-icon-text { font-size: 28px; }
+
+    /* ====== Loading State ====== */
+    .loading-state {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .loading-state.active { display: flex; }
+    .loading-animation {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 24px;
+    }
+    .plate {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 4px solid var(--gold);
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation: plateSpin 2s linear infinite;
+    }
+    .plate::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 2px solid var(--gold-light);
+    }
+    @keyframes plateSpin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    .loading-text {
+      color: var(--gold-light);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .loading-sub {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    /* ====== Menu Display State ====== */
+    .menu-state { display: none; flex-direction: column; flex: 1; }
+    .menu-state.active { display: flex; }
+
+    .restaurant-bar {
+      padding: 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .restaurant-bar .restaurant-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold-light);
+      margin-bottom: 4px;
+    }
+    .restaurant-bar .menu-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .category-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: var(--header-h);
+      z-index: 50;
+    }
+    .category-tabs::-webkit-scrollbar { display: none; }
+    .category-tab {
+      flex-shrink: 0;
+      padding: 8px 16px;
+      border-radius: 20px;
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .category-tab.active {
+      background: var(--gold-dark);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .menu-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .category-section { margin-bottom: 20px; }
+    .category-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold-light);
+      margin-bottom: 10px;
+      padding: 8px 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .category-title .count {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Dish card */
+    .dish-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      margin-bottom: 8px;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dish-card.selected {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, var(--surface), rgba(212,168,83,0.08));
+    }
+    .dish-info { flex: 1; min-width: 0; }
+    .dish-name-cn {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+      line-height: 1.3;
+    }
+    .dish-name-original {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-style: italic;
+    }
+    .dish-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .dish-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .dish-tag {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--text-secondary);
+    }
+    .dish-tag.spicy { background: rgba(233,69,96,0.15); color: var(--danger); }
+    .dish-tag.veg { background: rgba(46,204,113,0.15); color: var(--success); }
+    .dish-tag.rec { background: rgba(212,168,83,0.15); color: var(--gold-light); }
+    .dish-price-area {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .dish-price {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold-light);
+      white-space: nowrap;
+    }
+    .dish-price-rmb {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* Quantity control */
+    .qty-control { display: flex; align-items: center; gap: 8px; }
+    .qty-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--surface-3);
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      font-family: inherit;
+      line-height: 1;
+    }
+    .qty-btn:active { transform: scale(0.9); }
+    .qty-btn.add { background: var(--gold-dark); border-color: var(--gold-dark); color: #fff; }
+    .qty-num {
+      min-width: 24px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ====== Cart Bar ====== */
+    .cart-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 10px 16px calc(10px + var(--safe-bottom));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 200;
+      cursor: pointer;
+      transition: all 0.3s;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .cart-bar:active { background: var(--surface-2); }
+    .cart-summary { display: flex; align-items: center; gap: 12px; }
+    .cart-icon-wrap { position: relative; font-size: 28px; }
+    .cart-badge {
+      position: absolute;
+      top: -6px; right: -6px;
+      min-width: 20px; height: 20px;
+      border-radius: 10px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px;
+    }
+    .cart-badge:empty { display: none; }
+    .cart-total { display: flex; flex-direction: column; }
+    .cart-total-main { font-size: 18px; font-weight: 700; color: var(--gold-light); }
+    .cart-total-rmb { font-size: 11px; color: var(--text-muted); }
+    .cart-expand-icon { font-size: 20px; color: var(--text-muted); transition: transform 0.3s; }
+
+    /* ====== Cart Drawer ====== */
+    .cart-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 250;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .cart-overlay.open { opacity: 1; pointer-events: auto; }
+    .cart-drawer {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%; max-width: 480px;
+      max-height: 65dvh;
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      z-index: 251;
+      display: flex; flex-direction: column;
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: var(--safe-bottom);
+    }
+    .cart-drawer.open { transform: translateX(-50%) translateY(0); }
+    .cart-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cart-drawer-header h3 { font-size: 17px; font-weight: 700; color: var(--gold-light); }
+    .cart-drawer-close {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: none; background: var(--surface-2);
+      color: var(--text); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cart-drawer-items { flex: 1; overflow-y: auto; padding: 12px 20px; }
+    .cart-drawer-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+    .cart-drawer-total { display: flex; justify-content: space-between; align-items: flex-end; }
+    .cart-drawer-total .label { font-size: 14px; color: var(--text-secondary); }
+    .cart-drawer-total .price { font-size: 22px; font-weight: 700; color: var(--gold-light); }
+    .cart-drawer-total .rmb { font-size: 12px; color: var(--text-muted); text-align: right; }
+    .cart-drawer-actions { display: flex; gap: 10px; }
+    .cart-drawer-actions .btn { flex: 1; padding: 12px; }
+
+    .cart-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .cart-item-info { flex: 1; min-width: 0; }
+    .cart-item-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .cart-item-original { font-size: 11px; color: var(--text-muted); }
+    .cart-item-price { font-size: 13px; color: var(--text-secondary); margin-right: 12px; white-space: nowrap; }
+
+    /* ====== Toast ====== */
+    .toast {
+      position: fixed; top: 20px; left: 50%;
+      transform: translateX(-50%) translateY(-120px);
+      background: var(--danger); color: #fff;
+      padding: 12px 20px; border-radius: var(--radius-xs);
+      font-size: 14px; font-weight: 600;
+      z-index: 999;
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      max-width: 90vw; text-align: center;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: var(--success); }
+
+    /* ====== Image Preview ====== */
+    .image-preview-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 300;
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; padding: 20px;
+    }
+    .image-preview-overlay.active { display: flex; }
+    .image-preview-overlay img {
+      max-width: 100%; max-height: 60dvh;
+      border-radius: var(--radius); margin-bottom: 20px;
+    }
+    .image-preview-actions { display: flex; gap: 12px; }
+
+    /* ====== Settings Modal ====== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 350; display: none;
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 24px; width: 100%; max-width: 360px;
+      border: 1px solid var(--border);
+    }
+    .modal h3 { font-size: 18px; font-weight: 700; color: var(--gold-light); margin-bottom: 8px; }
+    .modal p { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+    .modal input {
+      width: 100%; padding: 12px; border-radius: var(--radius-xs);
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: 14px; font-family: inherit;
+      margin-bottom: 16px; outline: none;
+    }
+    .modal input:focus { border-color: var(--gold); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ====== Home Button ====== */
+    #btnHome { font-size: 20px; font-weight: 700; }
+
+    /* ====== Chat Dialog ====== */
+    .chat-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 280; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .chat-overlay.open { opacity: 1; pointer-events: auto; }
+    .chat-dialog {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%; max-width: 480px;
+      height: 70dvh;
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      z-index: 281;
+      display: flex; flex-direction: column;
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .chat-dialog.open { transform: translateX(-50%) translateY(0); }
+    .chat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .chat-header h3 { font-size: 16px; font-weight: 700; color: #667eea; }
+    .chat-close {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: none; background: var(--surface-2);
+      color: var(--text); font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .chat-msg { display: flex; }
+    .chat-msg.user { justify-content: flex-end; }
+    .chat-msg-content {
+      max-width: 82%; padding: 10px 14px; border-radius: 14px;
+      font-size: 13px; line-height: 1.6;
+    }
+    .chat-msg.user .chat-msg-content {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg.assistant .chat-msg-content {
+      background: var(--surface-2);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+    .chat-msg.typing .chat-msg-content {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .chat-input-area {
+      display: flex; gap: 8px;
+      padding: 12px 16px calc(12px + var(--safe-bottom));
+      border-top: 1px solid var(--border);
+    }
+    .chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+    .chat-input:focus { border-color: #667eea; }
+    .chat-send {
+      padding: 10px 18px;
+      border-radius: 20px;
+      border: none;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .chat-send:active { opacity: 0.8; }
+
+    /* ====== Utilities ====== */
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+
+    @media (min-width: 481px) {
+      #app { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <div class="logo"><span class="icon">🍽️</span><span>菜单翻译助手</span></div>
+      <div class="header-actions">
+        <button class="btn btn-icon hidden" id="btnHome" title="返回首页" aria-label="返回首页">←</button>
+        <button class="btn btn-icon hidden" id="btnRescan" title="重新拍照" aria-label="重新拍照">📷</button>
+        <button class="btn btn-icon hidden" id="btnChat" title="AI问答" aria-label="AI问答">💬</button>
+        <button class="btn btn-icon" id="btnSettings" title="设置" aria-label="设置">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      <!-- Welcome State -->
+      <section class="welcome" id="welcomeState">
+        <div class="hero-icon">🍜</div>
+        <h2>看不懂菜单？拍一下！</h2>
+        <p>拍照即识别，自动翻译中文<br>点菜计算总价，旅行吃饭不发愁</p>
+        <div class="capture-area">
+          <div class="capture-btns">
+            <button class="capture-btn camera" id="btnCamera">
+              <span class="btn-icon-text">📸</span><span>拍照识别菜单</span>
+            </button>
+            <button class="capture-btn" id="btnUpload">
+              <span class="btn-icon-text">🖼️</span><span>从相册选择</span>
+            </button>
+          </div>
+        </div>
+        <p style="margin-top:24px;font-size:11px;color:var(--text-muted);">
+          支持全球主要语言 · 自动识别菜系分类<br>准确中文本地化翻译
+          <span id="connStatus" style="display:block;margin-top:12px;font-size:11px;padding:6px 12px;border-radius:12px;"></span>
+        </p>
+      </section>
+
+      <!-- Loading State -->
+      <section class="loading-state" id="loadingState">
+        <div class="loading-animation">
+          <div class="plate"></div>
+        </div>
+        <div class="loading-text" id="loadingText">AI 正在分析菜单...</div>
+        <div class="loading-sub">识别菜名 · 翻译中文 · 整理分类</div>
+      </section>
+
+      <!-- Menu State -->
+      <section class="menu-state" id="menuState">
+        <div class="restaurant-bar" id="restaurantBar"></div>
+        <div class="category-tabs" id="categoryTabs"></div>
+        <div class="menu-items" id="menuItems"></div>
+      </section>
+    </main>
+
+    <!-- Cart Bar -->
+    <div class="cart-bar" id="cartBar" style="display:none;">
+      <div class="cart-summary">
+        <div class="cart-icon-wrap">🛒<span class="cart-badge" id="cartBadge"></span></div>
+        <div class="cart-total">
+          <span class="cart-total-main" id="cartTotalMain">¥0</span>
+          <span class="cart-total-rmb" id="cartTotalRmb"></span>
+        </div>
+      </div>
+      <span class="cart-expand-icon">▲</span>
+    </div>
+
+    <!-- Cart Overlay & Drawer -->
+    <div class="cart-overlay" id="cartOverlay"></div>
+    <div class="cart-drawer" id="cartDrawer">
+      <div class="cart-drawer-header">
+        <h3>🛒 已选菜品</h3>
+        <button class="cart-drawer-close" id="cartDrawerClose">✕</button>
+      </div>
+      <div class="cart-drawer-items" id="cartDrawerItems"></div>
+      <div class="cart-drawer-footer">
+        <div class="cart-drawer-total">
+          <div><div class="label" id="cartDrawerItemCount">共 0 件</div></div>
+          <div style="text-align:right;">
+            <div class="price" id="cartDrawerTotal">¥0</div>
+            <div class="rmb" id="cartDrawerRmb"></div>
+          </div>
+        </div>
+        <div class="cart-drawer-actions">
+          <button class="btn btn-outline btn-sm" id="btnClearCart">清空</button>
+          <button class="btn btn-primary btn-sm" id="btnShareCart">📤 分享清单</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Preview Overlay -->
+    <div class="image-preview-overlay" id="imagePreview">
+      <img id="previewImage" src="" alt="菜单预览">
+      <div class="image-preview-actions">
+        <button class="btn btn-outline" id="btnPreviewCancel">重选</button>
+        <button class="btn btn-primary" id="btnPreviewConfirm">确认识别</button>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal">
+        <h3>⚙️ 设置</h3>
+        <p>使用 Claude Vision API 识别菜单。可通过代理服务器保护 API Key。</p>
+        <label style="font-size:12px;color:var(--text-secondary);">Anthropic API Key（可选，若使用代理则留空）</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
+        <label style="font-size:12px;color:var(--text-secondary);">代理服务器地址（可选）</label>
+        <input type="text" id="proxyUrlInput" placeholder="http://localhost:3001/api/analyze" autocomplete="off">
+        <div class="modal-actions">
+          <button class="btn btn-outline btn-sm" id="btnSettingsCancel">取消</button>
+          <button class="btn btn-primary btn-sm" id="btnSettingsSave">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Dialog -->
+    <div class="chat-overlay" id="chatOverlay"></div>
+    <div class="chat-dialog" id="chatDialog">
+      <div class="chat-header">
+        <h3>🤖 AI 菜单顾问</h3>
+        <button class="chat-close" id="chatClose">✕</button>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg assistant">
+          <div class="chat-msg-content">你好！我是菜单助手。对菜单上的任何菜品有疑问，都可以问我：<br>• 这道菜是什么？<br>• 口味如何？辣吗？<br>• 有什么食材？<br>• 适合素食者吗？</div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" class="chat-input" id="chatInput" placeholder="输入问题，如：这道菜辣吗？" autocomplete="off">
+        <button class="chat-send" id="chatSend">发送</button>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+    <input type="file" id="uploadInput" accept="image/*" class="hidden">
+  </div>
+
+  <script>
+  /* ================================================================
+     Menu Scanner App — 菜单翻译助手 v1.0
+     Complete client-side application logic
+     ================================================================ */
+
+  // ── DOM References ──────────────────────────────────────────────
+  const $ = (sel) => document.querySelector(sel);
+  const welcomeState = $('#welcomeState');
+  const loadingState = $('#loadingState');
+  const menuState = $('#menuState');
+  const loadingText = $('#loadingText');
+  const restaurantBar = $('#restaurantBar');
+  const categoryTabs = $('#categoryTabs');
+  const menuItems = $('#menuItems');
+  const cartBar = $('#cartBar');
+  const cartBadge = $('#cartBadge');
+  const cartTotalMain = $('#cartTotalMain');
+  const cartTotalRmb = $('#cartTotalRmb');
+  const cartOverlay = $('#cartOverlay');
+  const cartDrawer = $('#cartDrawer');
+  const cartDrawerItems = $('#cartDrawerItems');
+  const cartDrawerItemCount = $('#cartDrawerItemCount');
+  const cartDrawerTotal = $('#cartDrawerTotal');
+  const cartDrawerRmb = $('#cartDrawerRmb');
+  const imagePreview = $('#imagePreview');
+  const previewImage = $('#previewImage');
+  const settingsModal = $('#settingsModal');
+  const apiKeyInput = $('#apiKeyInput');
+  const proxyUrlInput = $('#proxyUrlInput');
+  const toast = $('#toast');
+  const cameraInput = $('#cameraInput');
+  const uploadInput = $('#uploadInput');
+  const btnRescan = $('#btnRescan');
+  const btnHome = $('#btnHome');
+  const btnChat = $('#btnChat');
+  const chatOverlay = $('#chatOverlay');
+  const chatDialog = $('#chatDialog');
+  const chatMessages = $('#chatMessages');
+  const chatInput = $('#chatInput');
+  const chatSend = $('#chatSend');
+  const chatClose = $('#chatClose');
+
+  // ── App State ───────────────────────────────────────────────────
+  let menuData = null;          // Parsed menu JSON from API
+  let cart = {};               // { "categoryIdx-itemIdx": { ...dish, qty: N } }
+  let exchangeRate = null;     // { rate: N, currency: "XXX" }
+  let pendingImage = null;     // base64 image waiting for confirmation
+  let activeCategory = 0;      // currently selected category tab index
+
+  // ── Settings ────────────────────────────────────────────────────
+  function getApiKey() { return localStorage.getItem('menu_scanner_api_key') || ''; }
+  function setApiKey(k) { localStorage.setItem('menu_scanner_api_key', k); }
+  function getProxyUrl() {
+    // If user has manually set a proxy URL, use it
+    const saved = localStorage.getItem('menu_scanner_proxy_url');
+    if (saved) return saved;
+    // AUTO-DETECT: when served from a web server (not file://), use same-origin proxy
+    if (window.location.protocol !== 'file:') {
+      return '/api/analyze';
+    }
+    return '';
+  }
+  function setProxyUrl(u) { localStorage.setItem('menu_scanner_proxy_url', u); }
+
+  // Load saved settings
+  apiKeyInput.value = getApiKey();
+  proxyUrlInput.value = localStorage.getItem('menu_scanner_proxy_url') || '';  // show only user-set value
+
+  // ── Navigation State Machine ────────────────────────────────────
+  function showState(state) {
+    welcomeState.classList.toggle('hidden', state !== 'welcome');
+    loadingState.classList.toggle('active', state === 'loading');
+    menuState.classList.toggle('active', state === 'menu');
+    cartBar.style.display = (state === 'menu') ? 'flex' : 'none';
+    btnRescan.classList.toggle('hidden', state !== 'menu');
+    btnHome.classList.toggle('hidden', state !== 'menu');
+    btnChat.classList.toggle('hidden', state !== 'menu');
+  }
+
+  // ── Toast ───────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type = '') {
+    clearTimeout(toastTimer);
+    toast.textContent = msg;
+    toast.className = 'toast ' + type + ' show';
+    toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 3000);
+  }
+
+  // ── Loading Animation Text Cycle ────────────────────────────────
+  const loadingMessages = [
+    'AI 正在分析菜单...',
+    '正在识别文字内容...',
+    '翻译成中文中...',
+    '整理菜单结构...',
+    '马上就好...'
+  ];
+  let loadingMsgIdx = 0;
+  let loadingMsgTimer = null;
+
+  function startLoadingAnimation() {
+    loadingMsgIdx = 0;
+    loadingText.textContent = loadingMessages[0];
+    loadingMsgTimer = setInterval(() => {
+      loadingMsgIdx = (loadingMsgIdx + 1) % loadingMessages.length;
+      loadingText.textContent = loadingMessages[loadingMsgIdx];
+    }, 2000);
+  }
+
+  function stopLoadingAnimation() {
+    clearInterval(loadingMsgTimer);
+    loadingMsgTimer = null;
+  }
+
+  // ── Image Handling ──────────────────────────────────────────────
+  function handleImageFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      showToast('请选择图片文件');
+      return;
+    }
+
+    // Compress large images before sending
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        // Resize if larger than 2048px on longest side
+        let { width, height } = img;
+        const maxDim = 2048;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        pendingImage = canvas.toDataURL('image/jpeg', 0.85);
+        previewImage.src = pendingImage;
+        imagePreview.classList.add('active');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  cameraInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) handleImageFile(e.target.files[0]);
+    cameraInput.value = '';
+  });
+
+  uploadInput.addEventListener('change', (e) => {
+    if (e.target.files[0]) handleImageFile(e.target.files[0]);
+    uploadInput.value = '';
+  });
+
+  // ── API Call ────────────────────────────────────────────────────
+  async function analyzeMenu(imageBase64) {
+    const apiKey = getApiKey();
+    const proxyUrl = getProxyUrl();
+
+    const systemPrompt = `你是一个专业的餐厅菜单分析助手。分析菜单图片，返回严格的JSON格式（不要markdown代码块包裹）。
+
+要求：
+1. 识别菜单中所有文字
+2. 分析结构：分类（前菜/主菜/汤品/甜品/饮品等）、菜名、描述、价格、货币
+3. 将所有文字翻译为简体中文
+4. 识别菜品特征标签（辣、素食、含坚果、人气推荐、招牌菜、含酒精等）
+5. 如果菜单上有餐厅名称，也请识别
+
+返回格式：
+{
+  "restaurant": "餐厅名称",
+  "currency": "货币代码(CNY/USD/JPY/EUR/KRW/THB等)",
+  "currency_symbol": "货币符号(¥/$/€/₩/฿等)",
+  "categories": [
+    {
+      "name_cn": "分类中文名",
+      "name_original": "分类原文",
+      "items": [
+        {
+          "name_cn": "菜名中文",
+          "name_original": "菜名原文",
+          "description_cn": "描述中文",
+          "description_original": "描述原文",
+          "price": 数字,
+          "tags": ["标签1"]
+        }
+      ]
+    }
+  ]
+}`;
+
+    const userPrompt = '请分析这张餐厅菜单图片，提取所有菜品信息并按上述JSON格式返回。注意：只返回纯JSON，不要用\`\`\`json包裹。';
+
+    let response;
+
+    if (proxyUrl) {
+      // Use proxy server
+      response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageBase64 })
+      });
+    } else if (apiKey) {
+      // Direct Anthropic API call
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64.split(',')[1] } },
+              { type: 'text', text: userPrompt }
+            ]
+          }]
+        })
+      });
+    } else {
+      throw new Error('请先在设置中配置 API Key 或代理地址');
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`请求失败 (${response.status}): ${errText.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+
+    // Parse response - handle both proxy and direct API responses
+    let text;
+    if (proxyUrl) {
+      text = data.content || data.text || JSON.stringify(data);
+    } else {
+      text = data.content?.[0]?.text || '';
+    }
+
+    // Try to extract JSON from response
+    try {
+      return JSON.parse(text);
+    } catch {
+      // Try to extract JSON from markdown code block
+      const jsonMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/) || text.match(/(\{[\s\S]*\})/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+      throw new Error('AI 返回格式解析失败，请重试');
+    }
+  }
+
+  // ── Currency Conversion ─────────────────────────────────────────
+  async function getExchangeRate(currency) {
+    if (currency === 'CNY' || currency === 'RMB') return { rate: 1, currency: 'CNY' };
+
+    try {
+      const resp = await fetch(`https://open.er-api.com/v6/latest/${currency}`);
+      const data = await resp.json();
+      if (data && data.rates && data.rates.CNY) {
+        return { rate: data.rates.CNY, currency };
+      }
+    } catch (e) {
+      // Fallback: use hardcoded approximate rates
+      const fallbackRates = {
+        USD: 7.25, EUR: 7.85, JPY: 0.048, GBP: 9.15, KRW: 0.0054,
+        THB: 0.20, VND: 0.00029, SGD: 5.40, MYR: 1.55, IDR: 0.00046,
+        AUD: 4.75, CAD: 5.30, CHF: 8.05, HKD: 0.93, TWD: 0.23,
+        MOP: 0.90, PHP: 0.13, INR: 0.087, NZD: 4.40
+      };
+      if (fallbackRates[currency]) {
+        return { rate: fallbackRates[currency], currency, fallback: true };
+      }
+    }
+    return null;
+  }
+
+  // ── Render Menu ─────────────────────────────────────────────────
+  function renderMenu(data) {
+    menuData = data;
+    cart = {};
+    activeCategory = 0;
+
+    // Render restaurant bar
+    restaurantBar.innerHTML = `
+      <div class="restaurant-name">🏠 ${data.restaurant || '未知餐厅'}</div>
+      <div class="menu-meta">
+        <span>${data.categories?.length || 0} 个分类</span>
+        <span>${data.categories?.reduce((sum, c) => sum + (c.items?.length || 0), 0) || 0} 道菜品</span>
+        <span>货币: ${data.currency_symbol || ''} ${data.currency || ''}</span>
+      </div>
+    `;
+
+    // Render category tabs
+    categoryTabs.innerHTML = (data.categories || []).map((cat, i) =>
+      `<div class="category-tab${i === 0 ? ' active' : ''}" data-idx="${i}">${cat.name_cn}</div>`
+    ).join('');
+
+    // Render all categories and items
+    renderAllItems();
+
+    // Load exchange rate
+    if (data.currency && data.currency !== 'CNY') {
+      getExchangeRate(data.currency).then(rate => {
+        exchangeRate = rate;
+        renderAllItems();
+        updateCartUI();
+      });
+    } else {
+      exchangeRate = { rate: 1, currency: 'CNY' };
+    }
+
+    showState('menu');
+    updateCartUI();
+
+    // Scroll to category when tab clicked
+    categoryTabs.addEventListener('click', (e) => {
+      const tab = e.target.closest('.category-tab');
+      if (!tab) return;
+      const idx = parseInt(tab.dataset.idx);
+      activeCategory = idx;
+      document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const section = document.getElementById(`cat-${idx}`);
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      categoryTabs.scrollTo({ left: tab.offsetLeft - 16, behavior: 'smooth' });
+    });
+  }
+
+  function renderAllItems() {
+    menuItems.innerHTML = (menuData.categories || []).map((cat, catIdx) => `
+      <div class="category-section" id="cat-${catIdx}">
+        <div class="category-title">
+          ${cat.name_cn}
+          <span class="count">${cat.name_original} · ${cat.items?.length || 0}道</span>
+        </div>
+        ${(cat.items || []).map((item, itemIdx) => renderDishCard(item, catIdx, itemIdx)).join('')}
+      </div>
+    `).join('');
+
+  }
+
+  function renderDishCard(item, catIdx, itemIdx) {
+    const cartKey = `${catIdx}-${itemIdx}`;
+    const qty = cart[cartKey]?.qty || 0;
+    const isSelected = qty > 0;
+    const rmbPrice = exchangeRate ? (item.price * exchangeRate.rate) : null;
+
+    const tagClasses = {
+      '辣': 'spicy', '麻辣': 'spicy', '微辣': 'spicy', '辛辣': 'spicy',
+      '素食': 'veg', '纯素': 'veg', '蔬菜': 'veg',
+      '推荐': 'rec', '人气': 'rec', '招牌': 'rec', '特色': 'rec',
+      '人气推荐': 'rec', '招牌菜': 'rec', '主厨推荐': 'rec', '必点': 'rec'
+    };
+
+    const tagsHtml = (item.tags || []).map(tag => {
+      const cls = tagClasses[tag] || '';
+      return `<span class="dish-tag ${cls}">${tag}</span>`;
+    }).join('');
+
+    const currencySymbol = menuData?.currency_symbol || '';
+
+    return `
+      <div class="dish-card${isSelected ? ' selected' : ''}" id="dish-${catIdx}-${itemIdx}">
+        <div class="dish-info">
+          <div class="dish-name-cn">${item.name_cn}</div>
+          <div class="dish-name-original">${item.name_original}</div>
+          ${item.description_cn ? `<div class="dish-desc">${item.description_cn}</div>` : ''}
+          ${tagsHtml ? `<div class="dish-tags">${tagsHtml}</div>` : ''}
+        </div>
+        <div class="dish-price-area">
+          <div class="dish-price">
+            <span class="currency-sym">${currencySymbol}</span>${item.price.toFixed(2)}
+          </div>
+          ${rmbPrice ? `<div class="dish-price-rmb">≈ ¥${rmbPrice.toFixed(2)}</div>` : ''}
+          <div class="qty-control">
+            ${qty > 0 ? `
+              <button class="qty-btn" data-cat="${catIdx}" data-item="${itemIdx}" data-action="minus">−</button>
+              <span class="qty-num">${qty}</span>
+            ` : ''}
+            <button class="qty-btn add" data-cat="${catIdx}" data-item="${itemIdx}" data-action="add">${qty > 0 ? '+' : '＋'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Cart Logic ──────────────────────────────────────────────────
+  function updateCartItem(catIdx, itemIdx, action) {
+    const cartKey = `${catIdx}-${itemIdx}`;
+    const item = menuData.categories[catIdx].items[itemIdx];
+
+    if (action === 'add') {
+      if (!cart[cartKey]) {
+        cart[cartKey] = { ...item, catIdx, itemIdx, qty: 0 };
+      }
+      cart[cartKey].qty++;
+      // Haptic feedback
+      if (navigator.vibrate) navigator.vibrate(10);
+    } else if (action === 'minus') {
+      if (cart[cartKey]) {
+        cart[cartKey].qty--;
+        if (cart[cartKey].qty <= 0) delete cart[cartKey];
+      }
+    }
+
+    // Re-render affected dish card
+    const dishCard = document.getElementById(`dish-${catIdx}-${itemIdx}`);
+    if (dishCard) {
+      const cat = menuData.categories[catIdx];
+      dishCard.outerHTML = renderDishCard(item, catIdx, itemIdx);
+      // Re-attach class since outerHTML creates new element
+      const newCard = document.getElementById(`dish-${catIdx}-${itemIdx}`);
+      if (newCard && cart[cartKey]) newCard.classList.add('selected');
+    }
+
+    updateCartUI();
+  }
+
+  function updateCartUI() {
+    const items = Object.values(cart);
+    const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
+    const totalPrice = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const currencySymbol = menuData?.currency_symbol || '';
+
+    // Cart badge
+    cartBadge.textContent = totalItems > 0 ? totalItems : '';
+
+    // Cart bar totals
+    cartTotalMain.textContent = `${currencySymbol}${totalPrice.toFixed(2)}`;
+    if (exchangeRate && exchangeRate.currency !== 'CNY') {
+      cartTotalRmb.textContent = `≈ ¥${(totalPrice * exchangeRate.rate).toFixed(2)} RMB`;
+    } else {
+      cartTotalRmb.textContent = '';
+    }
+
+    // Cart drawer
+    cartDrawerItemCount.textContent = `共 ${totalItems} 件`;
+    cartDrawerTotal.textContent = `${currencySymbol}${totalPrice.toFixed(2)}`;
+    if (exchangeRate && exchangeRate.currency !== 'CNY') {
+      cartDrawerRmb.textContent = `≈ ¥${(totalPrice * exchangeRate.rate).toFixed(2)} RMB`;
+    } else {
+      cartDrawerRmb.textContent = '';
+    }
+
+    // Render cart items
+    if (items.length === 0) {
+      cartDrawerItems.innerHTML = '<p class="text-center" style="color:var(--text-muted);padding:40px 0;">购物车是空的<br>点击菜品旁边的 ＋ 添加吧</p>';
+    } else {
+      cartDrawerItems.innerHTML = items.map(item => `
+        <div class="cart-item">
+          <div class="cart-item-info">
+            <div class="cart-item-name">${item.name_cn}</div>
+            <div class="cart-item-original">${item.name_original}</div>
+          </div>
+          <span class="cart-item-price">${currencySymbol}${(item.price * item.qty).toFixed(2)}</span>
+          <div class="qty-control">
+            <button class="qty-btn" data-cat="${item.catIdx}" data-item="${item.itemIdx}" data-action="minus">−</button>
+            <span class="qty-num">${item.qty}</span>
+            <button class="qty-btn add" data-cat="${item.catIdx}" data-item="${item.itemIdx}" data-action="add">+</button>
+          </div>
+        </div>
+      `).join('');
+
+    }
+  }
+
+  function clearCart() {
+    cart = {};
+    updateCartUI();
+    // Re-render all dish cards
+    menuItems.querySelectorAll('.dish-card').forEach(card => {
+      card.classList.remove('selected');
+      const qtyNum = card.querySelector('.qty-num');
+      if (qtyNum) {
+        // Replace qty control with just add button
+        const qtyControl = card.querySelector('.qty-control');
+        const catIdx = qtyControl?.querySelector('.qty-btn')?.dataset.cat;
+        const itemIdx = qtyControl?.querySelector('.qty-btn')?.dataset.item;
+        if (qtyControl && catIdx !== undefined) {
+          qtyControl.innerHTML = `<button class="qty-btn add" data-cat="${catIdx}" data-item="${itemIdx}" data-action="add">＋</button>`;
+        }
+      }
+    });
+    closeCartDrawer();
+  }
+
+  // ── Cart Drawer Toggle ──────────────────────────────────────────
+  function openCartDrawer() {
+    cartOverlay.classList.add('open');
+    cartDrawer.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    updateCartUI();
+  }
+
+  function closeCartDrawer() {
+    cartOverlay.classList.remove('open');
+    cartDrawer.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  cartBar.addEventListener('click', openCartDrawer);
+  cartOverlay.addEventListener('click', closeCartDrawer);
+  $('#cartDrawerClose').addEventListener('click', closeCartDrawer);
+
+  // ── Share ───────────────────────────────────────────────────────
+  function shareCart() {
+    const items = Object.values(cart);
+    if (items.length === 0) {
+      showToast('购物车是空的，请先添加菜品');
+      return;
+    }
+
+    const totalPrice = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const currencySymbol = menuData?.currency_symbol || '';
+    let text = `🛒 我的点菜清单\n${menuData?.restaurant ? `📍 ${menuData.restaurant}\n` : ''}━━━━━━━━━━━━\n`;
+    items.forEach(item => {
+      text += `• ${item.name_cn} (${item.name_original}) ×${item.qty} = ${currencySymbol}${(item.price * item.qty).toFixed(2)}\n`;
+    });
+    text += `━━━━━━━━━━━━\n💰 合计: ${currencySymbol}${totalPrice.toFixed(2)}`;
+    if (exchangeRate && exchangeRate.currency !== 'CNY') {
+      text += ` ≈ ¥${(totalPrice * exchangeRate.rate).toFixed(2)} RMB`;
+    }
+    text += `\n\n📱 由菜单翻译助手生成`;
+
+    if (navigator.share) {
+      navigator.share({ title: '我的点菜清单', text }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('已复制到剪贴板', 'success');
+      }).catch(() => {
+        showToast('分享失败，请截图保存');
+      });
+    }
+  }
+
+  // ── Back to Home ─────────────────────────────────────────────────
+  btnHome.addEventListener('click', () => {
+    if (confirm('确定要退出当前菜单吗？购物车内容将被清空。')) {
+      menuData = null;
+      cart = {};
+      exchangeRate = null;
+      closeCartDrawer();
+      closeChatDialog();
+      showState('welcome');
+    }
+  });
+
+  // ── Chat Dialog ──────────────────────────────────────────────────
+  function openChatDialog() {
+    chatOverlay.classList.add('open');
+    chatDialog.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => chatInput.focus(), 400);
+  }
+
+  function closeChatDialog() {
+    chatOverlay.classList.remove('open');
+    chatDialog.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  btnChat.addEventListener('click', openChatDialog);
+  chatOverlay.addEventListener('click', closeChatDialog);
+  chatClose.addEventListener('click', closeChatDialog);
+
+  async function sendChatMessage() {
+    const question = chatInput.value.trim();
+    if (!question) return;
+
+    // Add user message
+    appendChatMsg('user', question);
+    chatInput.value = '';
+
+    // Add typing indicator
+    const typingId = appendChatMsg('assistant', '正在思考...', true);
+
+    try {
+      const proxyUrl = getProxyUrl();
+      let answer;
+      if (proxyUrl) {
+        const chatUrl = proxyUrl.replace('/api/analyze', '/api/chat');
+        const resp = await fetch(chatUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, menuContext: menuData })
+        });
+        const data = await resp.json();
+        answer = data.answer || data.error || '抱歉，请求失败';
+      } else {
+        // Direct API call fallback — not implemented for chat, use proxy
+        answer = '请通过代理服务器使用聊天功能';
+      }
+
+      // Replace typing indicator with answer
+      removeChatMsg(typingId);
+      appendChatMsg('assistant', answer);
+    } catch (err) {
+      removeChatMsg(typingId);
+      appendChatMsg('assistant', '抱歉，网络出错了，请重试');
+    }
+  }
+
+  function appendChatMsg(role, text, isTyping) {
+    const id = 'msg-' + Date.now();
+    const div = document.createElement('div');
+    div.id = id;
+    div.className = `chat-msg ${role}${isTyping ? ' typing' : ''}`;
+    div.innerHTML = `<div class="chat-msg-content">${text.replace(/\n/g, '<br>')}</div>`;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return id;
+  }
+
+  function removeChatMsg(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  chatSend.addEventListener('click', sendChatMessage);
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendChatMessage();
+  });
+
+  // Close chat on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (chatDialog.classList.contains('open')) {
+        closeChatDialog();
+      } else {
+        closeCartDrawer();
+        imagePreview.classList.remove('active');
+        settingsModal.classList.remove('active');
+      }
+    }
+  });
+
+  // ── Analyze Flow ────────────────────────────────────────────────
+  async function startAnalysis(imageBase64) {
+    imagePreview.classList.remove('active');
+    showState('loading');
+    startLoadingAnimation();
+
+    try {
+      const data = await analyzeMenu(imageBase64);
+      stopLoadingAnimation();
+
+      if (!data || !data.categories || data.categories.length === 0) {
+        throw new Error('未能识别出菜单内容，请确保图片清晰且包含菜单文字');
+      }
+
+      renderMenu(data);
+    } catch (err) {
+      stopLoadingAnimation();
+      showState('welcome');
+      showToast(`识别失败: ${err.message}`);
+      console.error('Menu analysis error:', err);
+    }
+  }
+
+  // ── Event Listeners ─────────────────────────────────────────────
+  $('#btnCamera').addEventListener('click', () => cameraInput.click());
+  $('#btnUpload').addEventListener('click', () => uploadInput.click());
+
+  $('#btnPreviewCancel').addEventListener('click', () => {
+    imagePreview.classList.remove('active');
+    pendingImage = null;
+  });
+
+  $('#btnPreviewConfirm').addEventListener('click', () => {
+    if (pendingImage) startAnalysis(pendingImage);
+  });
+
+  $('#btnClearCart').addEventListener('click', clearCart);
+  $('#btnShareCart').addEventListener('click', shareCart);
+
+  // Settings modal
+  $('#btnSettings').addEventListener('click', () => settingsModal.classList.add('active'));
+  $('#btnSettingsCancel').addEventListener('click', () => settingsModal.classList.remove('active'));
+  $('#btnSettingsSave').addEventListener('click', () => {
+    setApiKey(apiKeyInput.value.trim());
+    setProxyUrl(proxyUrlInput.value.trim());
+    settingsModal.classList.remove('active');
+    showToast('设置已保存', 'success');
+  });
+
+  // Close modals on overlay click
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.remove('active');
+  });
+
+  // ── PWA Registration ───────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+
+  // ── Initialize ──────────────────────────────────────────────────
+  // Show connection mode status
+  (function initConnectionStatus() {
+    const statusEl = $('#connStatus');
+    if (!statusEl) return;
+    const proxy = getProxyUrl();
+    const apiKey = getApiKey();
+    if (proxy) {
+      statusEl.textContent = '🟢 已连接服务器 · 代理模式';
+      statusEl.style.background = 'rgba(46,204,113,0.12)';
+      statusEl.style.color = '#2ecc71';
+    } else if (apiKey) {
+      statusEl.textContent = '🔑 直连模式 · 使用已保存的 API Key';
+      statusEl.style.background = 'rgba(212,168,83,0.12)';
+      statusEl.style.color = '#d4a853';
+    } else {
+      statusEl.textContent = '⚠️ 未配置 · 点击右上角 ⚙️ 设置 API Key';
+      statusEl.style.background = 'rgba(233,69,96,0.12)';
+      statusEl.style.color = '#e94560';
+    }
+  })();
+
+  // ── Global event delegation for menu items (once!) ──────────────
+  menuItems.addEventListener('click', (e) => {
+    const btn = e.target.closest('.qty-btn');
+    if (!btn) return;
+    e.preventDefault();
+    const catIdx = parseInt(btn.dataset.cat);
+    const itemIdx = parseInt(btn.dataset.item);
+    const action = btn.dataset.action;
+    updateCartItem(catIdx, itemIdx, action);
+  });
+
+  // ── Cart drawer quantity buttons (event delegation, once!) ──────
+  cartDrawerItems.addEventListener('click', (e) => {
+    const btn = e.target.closest('.qty-btn');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const catIdx = parseInt(btn.dataset.cat);
+    const itemIdx = parseInt(btn.dataset.item);
+    const action = btn.dataset.action;
+    updateCartItem(catIdx, itemIdx, action);
+  });
+
+  // ── Rescan: show choice between camera and gallery ───────────────
+  btnRescan.addEventListener('click', () => {
+    // Toggle between camera and gallery on each click
+    // or show a quick choice by creating a mini menu
+    const existingMenu = document.querySelector('.rescan-menu');
+    if (existingMenu) {
+      existingMenu.remove();
+      return;
+    }
+    const menu = document.createElement('div');
+    menu.className = 'rescan-menu';
+    menu.style.cssText = 'position:fixed;top:56px;right:8px;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+    menu.innerHTML = `
+      <button id="rescanCamera" style="display:flex;align-items:center;gap:10px;width:100%;padding:14px 18px;border:none;background:transparent;color:var(--text);font-size:14px;font-family:inherit;cursor:pointer;border-bottom:1px solid var(--border);white-space:nowrap;">
+        📸 拍照识别
+      </button>
+      <button id="rescanGallery" style="display:flex;align-items:center;gap:10px;width:100%;padding:14px 18px;border:none;background:transparent;color:var(--text);font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;">
+        🖼️ 从相册选择
+      </button>
+    `;
+    document.body.appendChild(menu);
+    menu.querySelector('#rescanCamera').addEventListener('click', () => {
+      menu.remove();
+      cameraInput.click();
+    });
+    menu.querySelector('#rescanGallery').addEventListener('click', () => {
+      menu.remove();
+      uploadInput.click();
+    });
+    // Close menu when clicking elsewhere
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu(e) {
+        if (!menu.contains(e.target) && e.target !== btnRescan) {
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }, 100);
+  });
+
+  showState('welcome');
+  console.log('🍽️ 菜单翻译助手已就绪');
+  console.log('   📸 点击拍照或选择图片开始');
+  console.log('   ⚙️ 点击右上角齿轮配置 API');
+  </script>
+</body>
+</html>
